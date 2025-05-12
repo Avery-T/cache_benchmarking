@@ -1,0 +1,51 @@
+
+
+**Cache bank conflicts AMD and intel** 
+Source:https://www.agner.org/optimize/microarchitecture.pdf
+Each 64-bytes line in the data cache is divided into 4 banks of 16 bytes each. It is not
+possible to do a memory read and a memory write in the same clock cycle if the two
+memory addresses have the same bank number, i.e. if bit 4 and 5 in the two addresses are
+the same on Core2. Example:
+; Example 8.15. Core2 cache bank conflict
+mov eax, [esi] ; Use bank 0, assuming esi is divisible by 40H
+mov [esi+100H], ebx ; Use bank 0. Cache bank conflict
+mov [esi+110H], ebx ; Use bank 1. No cache bank conflict
+
+Nehalem’s Elimination of Bank Conflicts
+Architectural Changes: Nehalem’s L1 cache avoids bank conflicts by redesigning the cache banking mechanism. Memory operations to the same 16-byte bank no longer stall.
+Three-Level Cache Hierarchy: Nehalem introduced private L2 caches (256 KB/core) and a shared inclusive L3 cache (8 MB), reducing pressure on L1 and improving parallelism. 
+False Dependencies in Both Architectures
+4 KB Aliasing: Both Core 2 and Nehalem suffer from false dependencies when memory addresses are separated by multiples of 4 KB. This occurs because:
+Cache sets are indexed using address bits above the page offset (bits 12+), leading to collisions for addresses with the same lower 12 bits.
+Example: Accesses to [esi] and [esi+4096] map to the same cache set, causing contention even if banks differ.
+
+**Misaligned memory accesses**
+The Core2 has a penalty for misaligned memory access when a cache line boundary (64
+bytes) is crossed. The penalty is approximately 12 clock cycles for a misaligned read and 10 
+121
+clock cycles for a m
+
+
+HACKSWELL (MY computer) 
+
+There is one cache on each core, except for the last-level cache. All caches are shared
+between two threads where a core can run two threads. It is likely that there will be more
+versions in the future with different level 3 cache sizes. Some versions have a level 4 cache.
+147
+The 256-bit read and write bandwidth (see p. 144) makes it advantageous to use 256-bit
+registers for copying or zeroing large blocks of memory. The REP MOVS instruction has full
+efficiency only if the source and destination are both aligned by 32. In all other cases, it is
+better to use a function library that uses 256-bit registers
+Cache bank conflicts
+The phenomenon of cache bank conflicts has been a performance problem in previous
+processors. This problem has been removed now. It is always possible to do two cache
+reads in the same clock cycle without causing a cache bank conflict.
+However, the problem with false dependence between memory addresses with the same
+set and offset remains. It is not possible to read and write simultaneously from addresses that are spaced by a multiple of 4 Kbytes:
+; Example 10.8. False memory dependence
+mov [rsi], eax
+mov ebx, [rsi+1000H] ; False memory dependence
+Misaligned memory accesses
+There is hardly any penalty for misaligned memory access, except for the effect of using
+multiple cache lines.
+

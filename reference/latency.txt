@@ -1,0 +1,3 @@
+When shuffling the buffer pointer, the impact of hardware TLB miss was not considered. If someone are interested in this topic, I will discuss it in subsequent articles."
+
+Pinning and Affinity: Pinning your program to a core (using taskset) increases the likelihood that its data remains in that core’s caches, improving cache “warmth” and reducing cache misses. However, this is not the same as exclusive ownership-other processes can still be scheduled on that core unless you explicitly prevent it (e.g., by isolating the core at the OS level).

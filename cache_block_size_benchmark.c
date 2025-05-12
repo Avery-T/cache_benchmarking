@@ -3,6 +3,7 @@
 #include <x86intrin.h>
 #include <stdlib.h>
 
+
 #define ARRAY_SIZE 4096
 
 
@@ -12,7 +13,9 @@
 // __rdtscp  acts as a memory barrier so you have accruate measurments
 
 int main() {
-    uint8_t *array = malloc(ARRAY_SIZE);
+    
+    //uint8_t *array = malloc(ARRAY_SIZE);
+		 uint8_t *array = malloc(ARRAY_SIZE); 
     unsigned int aux;
     uint64_t start, end;
 		//trys to find the block size by increasingt the stride. I
