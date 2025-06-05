@@ -12,7 +12,7 @@ $(OBJS): $(MAIN).c
 	$(CC) $(CFLAGS) -c $(MAIN).c
 
 run:
-	./$(MAIN)
+	sudo taskset -ac 0 nice -n -20 ./$(MAIN)
 
 clean:
 	rm *.o $(MAIN)
