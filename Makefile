@@ -14,3 +14,5 @@ run:
 
 clean:
 	@rm -rf $(DATA) $(BLOCK)
+
+.PHONY: all run clean
