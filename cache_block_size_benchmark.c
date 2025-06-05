@@ -13,9 +13,8 @@
 // __rdtscp  acts as a memory barrier so you have accruate measurments
 
 int main() {
-    
     //uint8_t *array = malloc(ARRAY_SIZE);
-		 uint8_t *array = malloc(ARRAY_SIZE); 
+		uint8_t *array = malloc(ARRAY_SIZE); 
     unsigned int aux;
     uint64_t start, end;
 		//trys to find the block size by increasingt the stride. I
@@ -25,7 +24,7 @@ int main() {
         start = __rdtscp(&aux);
         for (int i = 0; i < ARRAY_SIZE; i += stride) {
             array[i]++;
-        }
+       }
         end = __rdtscp(&aux);
         printf("Stride: %d, CPU cycles: %llu\n", stride, (unsigned long long)(end - start));
     }

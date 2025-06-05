@@ -95,6 +95,7 @@ int main(int argc, char* argv[])
     gettimeofday (&tv2, &tz);
 	      /* touch pointer p to prevent compiler optimization */
      char **touch = p;
+        
     if (tv2.tv_usec < tv1.tv_usec) {
         usec = 1000000 + tv2.tv_usec - tv1.tv_usec;
         sec = tv2.tv_sec - tv1.tv_sec - 1;
@@ -102,7 +103,9 @@ int main(int argc, char* argv[])
         usec = tv2.tv_usec - tv1.tv_usec;
         sec = tv2.tv_sec - tv1.tv_sec;
     }
-
+   //by performing a very large number of accesses and dividing the total time by the number of accesses, 
+   //the overhead per access becomes negligible
+   //loop unrolling by 100 so multiply by 100
     printf("Buffer size: %ld KB, stride %d, time %d.%06d s, latency %.2f ns\n", 
             memsize/1024, stride, sec, usec, (sec * 1000000  + usec) * 1000.0 / (tmp *100));
     munmap(mem, memsize);

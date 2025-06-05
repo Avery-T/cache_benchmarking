@@ -31,7 +31,12 @@
 	 Modern Caches dont care if the address is Virtual or Physical for the block Offset and Set Index. However they use physical for Tag.
 	 This means that a userspace program (this one) can find how many sets you have in the cache and were in the address is the set index.
 */
+
+
+
+
 int main() {
+		uint32_t way_0, way_1, way_2, way_3, way_4, way_5, way_6, way_7, way_8  = 0; 
     // Choose two addresses with the same set index (bits 6-11)
     // For example: 0x100000 and 0x200000 (both have zeros in bits 6-11)
    	uint32_t start = 0; 
