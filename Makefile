@@ -1,18 +1,16 @@
 CC = gcc
-CFLAGS = -Wall -Werror -g
-MAIN = cache_block_size_benchmark
-OBJS = $(MAIN).o
+CFLAGS = -Wall -Werror -Wunused -g 
+DATA = data_sets
+BLOCK = block_size
 
-all: $(MAIN) run
+all: $(DATA) $(BLOCK) run
 
-$(MAIN): $(OBJS)
-	$(CC) $(CFLAGS) -o $(MAIN) $(OBJS)
-
-$(OBJS): $(MAIN).c
-	$(CC) $(CFLAGS) -c $(MAIN).c
+%: %.c
+	@$(CC) $(CFLAGS) -o $@ $<
 
 run:
-	sudo taskset -ac 0 nice -n -20 ./$(MAIN)
+	@sudo taskset -ac 0 nice -n -20 ./$(DATA)
+	@sudo taskset -ac 0 nice -n -20 ./$(BLOCK)
 
 clean:
-	rm *.o $(MAIN)
+	@rm -rf $(DATA) $(BLOCK)
