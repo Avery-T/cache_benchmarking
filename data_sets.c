@@ -52,7 +52,7 @@ int main() {
             else {
                 //the final address tells you the bits for the set index
                 //0x08 means pad to 8 digits b/c 32 bit number
-                printf("--------------Number of L1 Data Cache Sets--------------\n%d Sets\n", cnt);
+                printf("%d Sets\n", cnt);
                 return 0;
             }
         }

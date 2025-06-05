@@ -3,3 +3,4 @@
 block_size
 data_sets
 latency
+instruction_cache
