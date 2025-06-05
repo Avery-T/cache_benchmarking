@@ -17,6 +17,7 @@ int main() {
     //trys to find the block size by increasingt the stride. I
     //If the delta between two strides it means you had a cache miss and thus the stride tells you your cache block size.
     //when you increase the stride passed the block size the delta is not going to be big because you're constantly cache missing
+    printf("--------------Data Cache Block Size Tests--------------\n");
     for (int stride = 1; stride <= 512; stride *= 2) {
        start = __rdtscp(&aux);
         for (int i = 0; i < ARRAY_SIZE; i += stride) {
