@@ -6,9 +6,12 @@
 #include <time.h>
 #include <x86intrin.h>
 
-#define TOTAL_REGION_SIZE (1024 * 1024) // 1 MB
-#define SLOT_SIZE 128                   // 128 bytes per slot
-#define MAX_SLOTS (TOTAL_REGION_SIZE / SLOT_SIZE)
+#define TOTAL_REGION_SIZE (128 * 1024 * 1) // 128 KB
+#define SLOT_SIZE 1 
+#define PAGE_SIZE 4096
+#define MAX_ITLB_PAGES 128
+#define NUM_RUNS 1000
+#define CPU_FREQ_GHZ 0.8 // Set to your CPU's frequency in GHz
 
 void shuffle(size_t *arr, size_t n) {
     for (size_t i = n - 1; i > 0; --i) {
@@ -19,9 +22,25 @@ void shuffle(size_t *arr, size_t n) {
     }
 }
 
+void fill_with_lfence_and_ret(uint8_t *slot, size_t slot_size) {
+    // Fill as many lfence instructions (0F AE E8, 3 bytes each) as possible
+    size_t n_lfence = (slot_size - 1) / 3;
+    size_t offset = 0;
+    for (size_t i = 0; i < n_lfence; ++i) {
+        slot[offset++] = 0x0F;
+        slot[offset++] = 0xAE;
+        slot[offset++] = 0xE8;
+    }
+    // Fill any remaining bytes (except last) with NOPs
+    while (offset < slot_size - 1) {
+        slot[offset++] = 0x90;
+    }
+    // Last byte is RET
+    slot[slot_size - 1] = 0xC3;
+}
+
 int main() {
     srand(time(NULL));
-    // Allocate 1 MB of RWX memory
     uint8_t *region = mmap(NULL, TOTAL_REGION_SIZE, PROT_READ | PROT_WRITE | PROT_EXEC,
                            MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (region == MAP_FAILED) {
@@ -29,50 +48,64 @@ int main() {
         return 1;
     }
 
-    // Prepare an array of all possible slot offsets in the 1 MB region
-    size_t slot_offsets[MAX_SLOTS];
-    for (size_t i = 0; i < MAX_SLOTS; ++i) {
-        slot_offsets[i] = i * SLOT_SIZE;
-    }
+    printf("Region size (KB), Pages, Avg cycles, Avg ns\n");
 
-    // For each region size, pick a random subset of slots and execute
-    for (size_t region_kb = 1; region_kb <= 42; region_kb += 1) {
+    for (size_t region_kb = 0; region_kb <= 128; region_kb += 4){ 
         size_t region_size = region_kb * 1024;
+        if (region_size == 0)
+            region_size = 1024;
         size_t num_slots = region_size / SLOT_SIZE;
+        size_t unique_pages = (region_size + PAGE_SIZE - 1) / PAGE_SIZE;
 
-        // Shuffle the slot_offsets array to randomize slot locations
-        shuffle(slot_offsets, MAX_SLOTS);
-
-        // Prepare function pointers for the chosen slots
-        void (**funcs)() = malloc(num_slots * sizeof(void (*)()));
-        for (size_t i = 0; i < num_slots; ++i) {
-            uint8_t *slot = region + slot_offsets[i];
-            memset(slot, 0x90, SLOT_SIZE - 1); // NOPs
-            slot[SLOT_SIZE - 1] = 0xC3;        // RET
-            funcs[i] = (void (*)())slot;
+        if (unique_pages > MAX_ITLB_PAGES) {
+            printf("Region size: %4zu KB would use %zu pages (exceeds iTLB coverage of %d pages), skipping.\n",
+                   region_kb, unique_pages, MAX_ITLB_PAGES);
+            continue;
         }
 
-        // Shuffle function order for random execution
-        for (size_t i = num_slots - 1; i > 0; --i) {
-            size_t j = rand() % (i + 1);
-            void (*tmp)() = funcs[i];
-            funcs[i] = funcs[j];
-            funcs[j] = tmp;
+        // Prepare contiguous slots
+        void (**funcs)() = malloc(num_slots * sizeof(void (*)()));
+        size_t *call_order = malloc(num_slots * sizeof(size_t));
+
+        // Initialize slots and call order
+        size_t filled = 0;
+        for (size_t i = 0; filled < num_slots; ++i) {
+            uint8_t *slot = region + i * SLOT_SIZE;
+            size_t page_offset = (size_t)slot % PAGE_SIZE;
+            if (page_offset + SLOT_SIZE > PAGE_SIZE)
+                continue; // Skip if slot would cross page boundary
+            fill_with_lfence_and_ret(slot, SLOT_SIZE);
+            funcs[filled] = (void (*)())slot;
+            call_order[filled] = filled;
+            filled++;
         }
 
         // Warm-up
+        shuffle(call_order, num_slots);
         for (size_t i = 0; i < num_slots; ++i)
-            funcs[i]();
+            funcs[call_order[i]]();
 
         // Timed run
         unsigned int aux;
-        uint64_t start = __rdtscp(&aux);
-        for (size_t i = 0; i < num_slots; ++i)
-            funcs[i]();
-        uint64_t end = __rdtscp(&aux);
+        uint64_t total_cycles = 0;
 
-        printf("Region size: %4zu KB, cycles: %8llu\n", region_kb, (unsigned long long)(end - start));
+        for (int run = 0; run < NUM_RUNS; ++run) {
+            shuffle(call_order, num_slots);
+            uint64_t start = __rdtscp(&aux);
+            for (size_t i = 0; i < num_slots; ++i) {
+                funcs[call_order[i]]();
+            }
+            uint64_t end = __rdtscp(&aux);
+            total_cycles += (end - start);
+        }
+
+        double avg_cycles = (double)total_cycles / (NUM_RUNS);
+        double avg_ns = avg_cycles / CPU_FREQ_GHZ;
+
+        printf("%10zu, %5zu, %12.2f, %10.2f\n", region_kb, unique_pages, avg_cycles / num_slots, avg_ns / num_slots);
+
         free(funcs);
+        free(call_order);
     }
 
     munmap(region, TOTAL_REGION_SIZE);
