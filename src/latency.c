@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
    //by performing a very large number of accesses and dividing the total time by the number of accesses, 
    //the overhead per access becomes negligible
    //loop unrolling by 100 so multiply by 100
-    printf("Buffer size: %ld KB, stride %d, time %ld.%06ld s, latency %.2f ns\n", 
+    printf("%ld, %d, %ld.%06ld, %.2f\n", 
             memsize/1024, stride, sec, usec, (sec * 1000000  + usec) * 1000.0 / (tmp *100));
     munmap(mem, memsize);
     free(indices);

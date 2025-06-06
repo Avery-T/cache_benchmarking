@@ -48,7 +48,7 @@ int main() {
         return 1;
     }
 
-    printf("Region Size (KB), Pages, Avg cycles, Avg ns\n");
+    printf("Region Size (KB), Pages, Avg Cycles, Avg Time (ns)\n");
 
     for (size_t region_kb = 0; region_kb <= 128; region_kb += 4){ 
         size_t region_size = region_kb * 1024;

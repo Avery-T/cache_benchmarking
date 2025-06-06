@@ -1,6 +1,4 @@
-*.o
-*.out
-block_size
-data_sets
-latency
-instruction_cache
+.venv
+.mypy_cache
+out/
+results/
